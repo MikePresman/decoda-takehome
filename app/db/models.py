@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -12,15 +12,15 @@ class PatientRecord(Base):
     __tablename__ = "patients"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    first_name: Mapped[str] = mapped_column(Text, nullable=False)
-    last_name: Mapped[str] = mapped_column(Text, nullable=False)
+    first_name: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    last_name: Mapped[str] = mapped_column(Text, nullable=False, index=True)
     date_of_birth: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
     gender: Mapped[str] = mapped_column(Text, nullable=False)
     address: Mapped[str] = mapped_column(Text, nullable=False)
-    phone: Mapped[str] = mapped_column(Text, nullable=False)
-    email: Mapped[str] = mapped_column(Text, nullable=False)
-    source: Mapped[str] = mapped_column(Text, nullable=False)
-    created_date: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    phone: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    email: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    source: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    created_date: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False, index=True)
 
     appointments: Mapped[list["AppointmentRecord"]] = relationship(back_populates="patient")
     payments: Mapped[list["PaymentRecord"]] = relationship(back_populates="patient")
@@ -59,8 +59,8 @@ class AppointmentRecord(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     patient_id: Mapped[str] = mapped_column(ForeignKey("patients.id"), nullable=False, index=True)
-    status: Mapped[str] = mapped_column(Text, nullable=False)
-    created_date: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    status: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    created_date: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False, index=True)
 
     patient: Mapped["PatientRecord"] = relationship(back_populates="appointments")
     appointment_services: Mapped[list["AppointmentServiceRecord"]] = relationship(back_populates="appointment")
@@ -77,6 +77,8 @@ class AppointmentServiceRecord(Base):
             "start",
             name="uq_appointment_services_natural_key",
         ),
+        Index("ix_appointment_services_provider_start", "provider_id", "start"),
+        Index("ix_appointment_services_service_start", "service_id", "start"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
@@ -93,11 +95,15 @@ class AppointmentServiceRecord(Base):
 
 class PaymentRecord(Base):
     __tablename__ = "payments"
+    __table_args__ = (
+        Index("ix_payments_status_date", "status", "date"),
+        Index("ix_payments_patient_status", "patient_id", "status"),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     patient_id: Mapped[str] = mapped_column(ForeignKey("patients.id"), nullable=False, index=True)
     amount: Mapped[int] = mapped_column(Integer, nullable=False)
-    date: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    date: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False, index=True)
     method: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(Text, nullable=False, index=True)
     provider_id: Mapped[str] = mapped_column(ForeignKey("providers.id"), nullable=False)
@@ -109,4 +115,3 @@ class PaymentRecord(Base):
     provider: Mapped["ProviderRecord"] = relationship(back_populates="payments")
     appointment: Mapped["AppointmentRecord"] = relationship(back_populates="payments")
     service: Mapped["ServiceRecord"] = relationship(back_populates="payments")
-

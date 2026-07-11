@@ -194,3 +194,23 @@ Once `DATABASE_URL` points at a running Postgres instance and Python dependencie
 - `appointments`
 - `appointment_services`
 - `payments`
+
+## Testing
+
+Backend:
+
+```bash
+tests backend
+```
+
+Frontend:
+
+```bash
+tests frontend
+```
+
+Both:
+
+```bash
+tests
+```
