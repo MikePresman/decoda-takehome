@@ -161,6 +161,7 @@ source .envrc
 Today, `scripts/dev.sh` starts:
 
 - a workspace-local PostgreSQL instance
+- runs Alembic migrations
 - the FastAPI backend
 - the Next.js frontend
 
@@ -195,22 +196,29 @@ Once `DATABASE_URL` points at a running Postgres instance and Python dependencie
 - `appointment_services`
 - `payments`
 
-## Testing
+## Local Commands
 
-Backend:
+Start the full local stack:
+
+```bash
+direnv allow
+dev
+```
+
+Run all tests:
+
+```bash
+tests
+```
+
+Run backend tests only:
 
 ```bash
 tests backend
 ```
 
-Frontend:
+Run frontend tests only:
 
 ```bash
 tests frontend
-```
-
-Both:
-
-```bash
-tests
 ```
