@@ -144,6 +144,32 @@ The repo includes:
 - `scripts/dev.sh` to run local Postgres, backend, and frontend together
 - `bin/dev` so `dev` is available directly inside the Nix shell
 
+### Nix + Direnv Setup
+
+Install `direnv` and hook it into your shell:
+
+- `https://direnv.net`
+
+Install Nix:
+
+```bash
+curl -L https://nixos.org/nix/install | sh
+```
+
+Enable flakes by creating or editing:
+
+```bash
+~/.config/nix/nix.conf
+```
+
+Add:
+
+```bash
+experimental-features = nix-command flakes
+```
+
+Restart your shell after Nix and direnv setup.
+
 ### Local Run
 
 ```bash
