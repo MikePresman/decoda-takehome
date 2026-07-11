@@ -21,19 +21,11 @@ fi
 
 mkdir -p "$ROOT/tmp"
 
-export APP_ENV="${APP_ENV:-development}"
-export PGHOST="${PGHOST:-localhost}"
-export PGPORT="${PGPORT:-5432}"
-export PGDATABASE="${PGDATABASE:-beauty_med_spa}"
-export PGUSER="${PGUSER:-postgres}"
-export PGPASSWORD="${PGPASSWORD:-postgres}"
-export DATABASE_URL="${DATABASE_URL:-postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/${PGDATABASE}}"
-export BACKEND_PORT="${BACKEND_PORT:-8000}"
-export FRONTEND_PORT="${FRONTEND_PORT:-3000}"
-export BACKEND_URL="${BACKEND_URL:-http://localhost:${BACKEND_PORT}}"
-export FRONTEND_URL="${FRONTEND_URL:-http://localhost:${FRONTEND_PORT}}"
-export NEXT_PUBLIC_API_BASE_URL="${NEXT_PUBLIC_API_BASE_URL:-${BACKEND_URL}}"
-export CORS_ORIGINS="${CORS_ORIGINS:-${FRONTEND_URL}}"
+source "$ROOT/config/dev.env"
+
+if [[ -f "$ROOT/.envrc.local" ]]; then
+  source "$ROOT/.envrc.local"
+fi
 
 PGDATA_DIR="${PGDATA_DIR:-$ROOT/tmp/postgres}"
 PGLOG_FILE="${PGLOG_FILE:-$ROOT/tmp/postgres.log}"

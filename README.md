@@ -137,7 +137,8 @@ Local development uses **Nix + direnv**, not Docker.
 The repo includes:
 
 - `flake.nix` for the local toolchain
-- `.envrc` for development environment variables
+- `config/dev.env` as the single source of local development defaults
+- `.envrc` for loading the Nix shell and local env
 - `.env.example` as the reference env file
 - `scripts/dev.sh` to run local Postgres, backend, and frontend together
 - `bin/dev` so `dev` is available directly inside the Nix shell

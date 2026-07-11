@@ -27,8 +27,8 @@
             packages = with pkgs; [
               python312
               python312Packages.pip
-              nodejs_20
-              nodePackages.pnpm
+              nodejs_22
+              pnpm
               postgresql_17
               git
             ];
