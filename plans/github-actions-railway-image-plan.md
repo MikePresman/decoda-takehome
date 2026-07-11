@@ -8,6 +8,12 @@ Add a CI/CD path with three pieces:
 2. GitHub Actions workflow for building and publishing deployable container images
 3. Railway configuration so backend and frontend services automatically redeploy when a new image is pushed
 
+This also needs an explicit production database lifecycle:
+
+4. PostgreSQL service provisioning
+5. controlled Alembic migration execution
+6. one-time seed/import execution for production data bootstrap
+
 This plan assumes:
 
 - backend and frontend remain separate deployable services
@@ -28,6 +34,11 @@ Today the repo has:
 - Railway source-based startup config via `railway.json` and `Procfile`
 - no `.github/workflows/` directory yet
 - no Dockerfiles yet
+
+Current database commands:
+
+- `./scripts/db-migrate.sh`
+- `./scripts/db-seed.sh`
 
 ## Target CI/CD Shape
 
@@ -113,6 +124,107 @@ Recommended actions:
 - `docker/login-action`
 - `docker/metadata-action`
 - `docker/build-push-action`
+
+### Workflow 3: `database-ops.yml`
+
+Purpose:
+
+- run production database operations intentionally, not on every image publish
+- keep migrations and seeding separate from application startup
+
+Trigger:
+
+- `workflow_dispatch` only
+
+Recommended inputs:
+
+- `operation`
+  - `migrate`
+  - `seed`
+- `environment`
+  - `production`
+  - optional future `staging`
+
+Recommended jobs:
+
+1. `run-migrations`
+   - only runs when `operation == migrate`
+   - installs backend dependencies
+   - uses production `DATABASE_URL`
+   - runs `python -m alembic upgrade head`
+
+2. `run-seed`
+   - only runs when `operation == seed`
+   - installs backend dependencies
+   - uses production `DATABASE_URL`
+   - runs `python -m app.db.seed_db`
+
+Important:
+
+- `seed` should be treated as a controlled bootstrap or reset operation
+- do not run seed automatically on normal deploys
+- if production data is intended to remain stable after initial import, seeding should be one-time only
+
+## Production Database Plan
+
+### A. PostgreSQL database
+
+Provision one Railway-managed PostgreSQL service for production.
+
+Requirements:
+
+- backend service gets `DATABASE_URL` from the Railway Postgres service
+- frontend never talks directly to Postgres
+- backend is the only service that owns schema and seed operations
+
+Recommended service topology:
+
+1. `postgres`
+2. `backend`
+3. `frontend`
+
+### B. Running migrations
+
+Migrations should be explicit, repeatable, and decoupled from image boot.
+
+Do not:
+
+- run Alembic in the Docker build
+- run Alembic automatically inside container startup on every boot
+
+Recommended production options:
+
+1. manual GitHub Actions workflow (`database-ops.yml`)
+2. Railway one-off command run from the backend image
+3. Railway pre-deploy command only if you want app deploys to always attempt schema advancement
+
+Best default for this repo:
+
+- use a manual GitHub Actions workflow first
+
+Why:
+
+- safer for a take-home and early production
+- clearer audit trail
+- easier to recover from migration mistakes
+- avoids tying every app redeploy to schema mutation
+
+### C. Seeding production
+
+Production seeding should be an explicit operation, not part of normal CI/CD.
+
+Recommended rule:
+
+- run seed exactly once when bootstrapping the production environment
+- after that, do not run seed on routine app deploys
+
+If you ever need to re-seed:
+
+- treat it as a deliberate data reset/import event
+- require a manual trigger
+- verify counts after completion
+
+Because `app.db.seed_db` clears tables before reload, it is not a harmless idempotent background task for a live environment. It is a controlled import/reset tool.
 
 ## Dockerfile Plan
 
@@ -203,6 +315,18 @@ Recommended production flow:
 - DB migrations run in a controlled step
 - seed/import remains explicit and one-time per environment
 
+### Step 5: Production runbook
+
+Recommended first production bootstrap order:
+
+1. Provision Railway Postgres
+2. Set backend `DATABASE_URL`
+3. Run migrations
+4. Run seed/import once
+5. Deploy backend image
+6. Deploy frontend image
+7. Verify `/health`, `/api/patients`, `/api/summary`, and frontend pages
+
 ## Recommended Deployment Strategy
 
 ### Safer option
@@ -283,14 +407,20 @@ Needed:
 1. Add Dockerfiles and verify local image builds
 2. Add `test.yml`
 3. Add `publish-images.yml`
-4. Publish images to GHCR manually once
-5. Point Railway backend service at the GHCR backend image
-6. Point Railway frontend service at the GHCR frontend image
-7. Enable Railway image auto updates on the chosen moving tag
-8. Verify a push to `main` produces:
+4. Add `database-ops.yml`
+5. Publish images to GHCR manually once
+6. Provision Railway Postgres
+7. Point Railway backend service at the GHCR backend image
+8. Point Railway frontend service at the GHCR frontend image
+9. Run production migrations
+10. Run production seed/import once
+11. Enable Railway image auto updates on the chosen moving tag
+12. Verify a push to `main` produces:
    - green tests
    - new image push
    - Railway redeploy from the new image
+
+13. Verify database-backed endpoints against production data
 
 ## Open Decisions
 
@@ -307,7 +437,11 @@ These should be locked before implementation:
    - manual Railway command
    - one-off workflow job
    - Railway pre-deploy command
-4. Frontend deployment mode:
+4. Production seed execution:
+   - manual one-off workflow
+   - Railway one-off command
+   - never automatic
+5. Frontend deployment mode:
    - static app behind Node runtime
    - full Next runtime image
 
@@ -320,6 +454,7 @@ For this repo, the most practical default is:
 3. configure Railway services to track the `main` tag
 4. enable Railway image auto updates with an `Anytime` or off-hours maintenance window
 5. keep migrations explicit instead of hiding them inside image startup
+6. keep production seeding manual and one-time only
 
 ## Why Railway Will Pull the Latest Image
 
