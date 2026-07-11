@@ -99,4 +99,4 @@ Thumbs.db
 *.temp
 .cache/
 .parcel-cache/
-
+tmp/

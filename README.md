@@ -130,14 +130,37 @@ This repository now includes a minimal FastAPI service so Railway has a real web
 - `requirements.txt`: Python dependencies for Railway / Nixpacks
 - `Procfile` and `railway.json`: explicit web start command and healthcheck configuration
 
+### Local Development
+
+Local development uses **Nix + direnv**, not Docker.
+
+The repo includes:
+
+- `flake.nix` for the local toolchain
+- `.envrc` for development environment variables
+- `.env.example` as the reference env file
+- `scripts/dev.sh` to run local Postgres, backend, and frontend together
+- `bin/dev` so `dev` is available directly inside the Nix shell
+
 ### Local Run
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+direnv allow
+dev
 ```
+
+If `direnv` is not active, you can enter the shell manually with:
+
+```bash
+nix develop
+source .envrc
+```
+
+Today, `scripts/dev.sh` starts:
+
+- a workspace-local PostgreSQL instance
+- the FastAPI backend
+- the Next.js frontend
 
 The service exposes:
 
@@ -154,5 +177,4 @@ This is deployment scaffolding, not the full take-home implementation yet. The p
 
 - PostgreSQL integration
 - async Python backend architecture
-- Next.js frontend
 - seed ingestion into a relational schema
