@@ -1,0 +1,76 @@
+import { render, screen, within } from "@testing-library/react";
+import React from "react";
+import { vi } from "vitest";
+
+vi.mock("next/link", () => ({
+  default: ({
+    children,
+    href,
+    className
+  }: {
+    children: React.ReactNode;
+    href: string;
+    className?: string;
+  }) => (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  )
+}));
+
+import { PatientTable } from "../components/patients/patient-table";
+
+
+describe("PatientTable", () => {
+  it("renders rows with operational columns and detail links", () => {
+    render(
+      <PatientTable
+        items={[
+          {
+            id: "pat_123",
+            first_name: "Pat",
+            last_name: "Example",
+            full_name: "Pat Example",
+            email: "pat@example.com",
+            phone: "555-0100",
+            address: "123 Main St",
+            date_of_birth: "1980-01-01",
+            source: "instagram",
+            gender: "female",
+            created_date: "2025-01-01T00:00:00",
+            appointment_count: 5,
+            paid_appointment_count: 4,
+            lifetime_value_cents: 124500,
+            last_appointment_date: "2025-06-01T00:00:00",
+            last_paid_date: "2025-06-01T00:00:00",
+            days_since_last_appointment: 10,
+            preferred_provider_name: "Dr. Jane Smith",
+            top_service_name: "Botox Injection",
+            status: "active"
+          }
+        ]}
+        total={1}
+        limit={50}
+        offset={0}
+        currentSort="created_date"
+        currentOrder="desc"
+        currentQuery={new URLSearchParams()}
+      />
+    );
+
+    expect(screen.getByText("Pat Example")).toBeInTheDocument();
+    expect(screen.getByText("555-0100")).toBeInTheDocument();
+    expect(screen.getByText("Dr. Jane Smith")).toBeInTheDocument();
+    expect(screen.getByText("$1,245")).toBeInTheDocument();
+
+    const activeBadge = screen.getByText("Active");
+    expect(activeBadge).toBeInTheDocument();
+
+    const patientLink = screen.getByRole("link", { name: /pat example/i });
+    expect(patientLink).toHaveAttribute("href", "/patients/pat_123");
+
+    const table = screen.getByRole("table");
+    expect(within(table).getByText("Last Visit")).toBeInTheDocument();
+  });
+});
+
